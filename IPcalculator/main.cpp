@@ -31,14 +31,19 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		HWND hIPaddress = GetDlgItem(hwnd, IDC_IPADDRESS);
 		HWND hIPmask = GetDlgItem(hwnd, IDC_IPMASK);
 		HWND hEditPrefix = GetDlgItem(hwnd, IDC_EDIT_PREFIX);
-		DWORD dwIPaddress = 0;
-		DWORD dwIPmask = UINT_MAX;
-		DWORD dwIPprefix = 0;
-		CHAR szIPprefix[3] = {};
+		//DWORD dwIPaddress = 0;
+		//DWORD dwIPmask = UINT_MAX;
+		//DWORD dwIPprefix = 0;
+		//CHAR szIPprefix[3] = {};
 		switch (LOWORD(wParam))
 		{
 		case IDC_IPADDRESS:
 		{
+			DWORD dwIPaddress = 0;
+			DWORD dwIPmask = UINT_MAX;
+			DWORD dwIPprefix = 0;
+			CHAR szIPprefix[3] = {};
+
 			if (HIWORD(wParam) == EN_CHANGE)
 			{
 				SendMessage(hIPaddress, IPM_GETADDRESS, 0, (LPARAM)&dwIPaddress);
@@ -54,14 +59,38 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
-		case IDC_IPMASK:
+		//case IDC_IPMASK:
+		//{
+		//	DWORD dwIPmask = UINT_MAX;
+		//	DWORD dwIPprefix = 0;
+		//	CHAR szIPprefix[3] = {};
+		//	if (HIWORD(wParam) == EN_CHANGE)
+		//	{
+		//		SendMessage(hIPmask, IPM_GETADDRESS, 0, (LPARAM)&dwIPmask);
+		//		for (; dwIPmask; dwIPmask <<= 1)dwIPprefix++;
+		//		sprintf(szIPprefix, "%i", dwIPprefix);
+		//		SendMessage(hEditPrefix, WM_SETTEXT, 0, (LPARAM)szIPprefix);
+		//	}
+		//}
+		//break;
+		case IDC_EDIT_PREFIX:
 		{
+			DWORD dwIPmask = UINT_MAX;
+			DWORD dwIPprefix = 0;
+			CHAR szIPprefix[3] = {};
+
 			if (HIWORD(wParam) == EN_CHANGE)
 			{
-				SendMessage(hIPmask, IPM_GETADDRESS, 0, (LPARAM)&dwIPmask);
-				for (; dwIPmask; dwIPmask <<= 1)dwIPprefix++;
-				sprintf(szIPprefix, "%i", dwIPprefix);
-				SendMessage(hEditPrefix, WM_SETTEXT, 0, (LPARAM)szIPprefix);
+				SendMessage(hEditPrefix, WM_GETTEXT, sizeof(szIPprefix), (LPARAM)szIPprefix);
+				dwIPprefix = atoi(szIPprefix);
+				if (dwIPprefix > 32)
+				{
+					dwIPprefix = 32;
+					strcpy(szIPprefix, "32");
+					SendMessage(hEditPrefix, WM_SETTEXT, 0, (LPARAM)szIPprefix);
+				}
+				dwIPmask <<= (32 - dwIPprefix);
+				SendMessage(hIPmask, IPM_SETADDRESS, 0, dwIPmask);
 			}
 		}
 		break;
@@ -70,6 +99,23 @@ BOOL CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case IDCANCEL:
 			EndDialog(hwnd, 0);
 			break;
+		}
+	}
+	break;
+	case WM_NOTIFY:
+	{
+		if(((LPNMHDR)lParam)->code == IPN_FIELDCHANGED)
+		{
+			HWND hIPmask = GetDlgItem(hwnd, IDC_IPMASK);
+			HWND hEditPrefix = GetDlgItem(hwnd, IDC_EDIT_PREFIX);
+			DWORD dwIPmask = UINT_MAX;
+			DWORD dwIPprefix = 0;
+			CHAR szIPprefix[3] = {};
+
+			SendMessage(hIPmask, IPM_GETADDRESS, 0, (LPARAM)&dwIPmask);
+			for (; dwIPmask >> 31; dwIPmask <<= 1)dwIPprefix++;
+			sprintf(szIPprefix, "%i", dwIPprefix);
+			SendMessage(hEditPrefix, WM_SETTEXT, 0, (LPARAM)szIPprefix);
 		}
 	}
 	break;
